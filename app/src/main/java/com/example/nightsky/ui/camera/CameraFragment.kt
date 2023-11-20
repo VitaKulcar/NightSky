@@ -66,9 +66,7 @@ class CameraFragment : Fragment() {
                 val textureView: TextureView = requireView().findViewById(R.id.textureView)
                 val surfaceProvider = Preview.SurfaceProvider { request ->
                     val surface = Surface(textureView.surfaceTexture)
-                    request.provideSurface(surface, cameraExecutor) { result ->
-                        // Handle the result if needed
-                    }
+                    request.provideSurface(surface, cameraExecutor) {}
                 }
 
                 preview.setSurfaceProvider(surfaceProvider)
@@ -82,7 +80,6 @@ class CameraFragment : Fragment() {
                     preview
                 )
             } catch (exc: Exception) {
-                // Handle exceptions
                 Log.e(TAG, "Error starting camera", exc)
             }
         }, ContextCompat.getMainExecutor(requireContext()))
