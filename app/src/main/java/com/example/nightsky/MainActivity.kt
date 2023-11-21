@@ -37,43 +37,4 @@ class MainActivity : AppCompatActivity() {
         setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
     }
-
-
-    private val CameraPermission = 1001
-    private lateinit var cameraManager: CameraManager
-    private var cameraDevice: CameraDevice? = null
-    private lateinit var surfaceView: SurfaceView
-
-
-    private fun openCamera() {
-        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-            try {
-                cameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
-                val cameraId = cameraManager.cameraIdList[0] // Use the first camera
-
-                cameraManager.openCamera(cameraId, object : CameraDevice.StateCallback() {
-                    override fun onOpened(camera: CameraDevice) {
-                        cameraDevice = camera
-                    }
-
-                    override fun onDisconnected(camera: CameraDevice) {
-                        closeCamera()
-                    }
-
-                    override fun onError(camera: CameraDevice, error: Int) {
-                        closeCamera()
-                    }
-                }, null)
-            } catch (e: CameraAccessException) {
-                e.printStackTrace()
-                // Handle camera access exception
-            }
-        } else {
-            ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.CAMERA), CameraPermission)
-        }
-    }
-
-    private fun closeCamera() {
-        cameraDevice?.close()
-    }
 }
