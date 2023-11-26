@@ -21,8 +21,6 @@ import kotlinx.coroutines.withContext
 import java.io.BufferedInputStream
 import java.net.HttpURLConnection
 import java.net.URL
-import java.util.Random
-
 
 class HomeFragment : Fragment() {
 
@@ -48,9 +46,9 @@ class HomeFragment : Fragment() {
         CoroutineScope(Dispatchers.Main).launch {
             try {
                 val pictureData = fetchJsonData()
-                val picture : PictureOfDay = Gson().fromJson(pictureData, PictureOfDay::class.java)
-                //context?.let { showErrorDialog(it, "Picture String: $pictureData") }
-                picture.title?.let{setTitle(it)}
+                val picture: PictureOfDay = Gson().fromJson(pictureData, PictureOfDay::class.java)
+                picture.title?.let { setTitle(it) }
+
                 picture.url?.let { setImage(it) }
                 picture.explanation?.let { setText(it) }
             } catch (e: Exception) {
@@ -60,25 +58,30 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun setImage(imageUrl: String){
+    private fun setImage(imageUrl: String) {
         val imageView: ImageView = requireView().findViewById(R.id.imageViewPojav)
         Picasso.get()
             .load(imageUrl)
             .into(imageView)
     }
 
-    private fun setText(text: String){
+    private fun setText(text: String) {
+
         val textView: TextView = requireView().findViewById(R.id.textViewOpisPojava)
         textView.text = text
     }
 
-    private fun setTitle(text:String){
+
+    private fun setTitle(text: String) {
+
         val textView: TextView = requireView().findViewById(R.id.textViewNaslov)
         textView.text = text
     }
 
     private suspend fun fetchJsonData(): String {
-        val apiUrl = "https://api.nasa.gov/planetary/apod?api_key=mncTMkevksCAWLjvN5mijXRIyed88XNg1QTFpaZl"
+        val apiUrl =
+            "https://api.nasa.gov/planetary/apod?api_key=mncTMkevksCAWLjvN5mijXRIyed88XNg1QTFpaZl"
+
         return withContext(Dispatchers.IO) {
             val url = URL(apiUrl)
             val urlConnection = url.openConnection() as HttpURLConnection

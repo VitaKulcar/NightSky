@@ -1,10 +1,13 @@
-@file:Suppress("DEPRECATION")
+//@file:Suppress("DEPRECATION")
 
 package com.example.nightsky.ui.camera
 
 import android.Manifest
 import android.content.ContentValues.TAG
 import android.content.pm.PackageManager
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.PorterDuff
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -12,7 +15,6 @@ import android.view.Surface
 import android.view.TextureView
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -27,7 +29,6 @@ import java.util.concurrent.Executors
 
 
 class CameraFragment : Fragment() {
-
     private var _binding: FragmentCameraBinding? = null
     private val binding get() = _binding!!
     private var cameraExecutor: ExecutorService = Executors.newSingleThreadExecutor()
@@ -46,13 +47,22 @@ class CameraFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         startCamera()
+        overlayPlanetaryPositions()
     }
 
     private fun startCamera() {
-        if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.CAMERA
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
             startCameraInternal()
         } else {
-            ActivityCompat.requestPermissions(requireActivity(), arrayOf(Manifest.permission.CAMERA), CameraPermissionRequestCode)
+            ActivityCompat.requestPermissions(
+                requireActivity(),
+                arrayOf(Manifest.permission.CAMERA),
+                CameraPermissionRequestCode
+            )
         }
     }
 
@@ -62,15 +72,12 @@ class CameraFragment : Fragment() {
             try {
                 cameraProvider = cameraProviderFuture.get()
                 val preview = Preview.Builder().build()
-
                 val textureView: TextureView = requireView().findViewById(R.id.textureView)
                 val surfaceProvider = Preview.SurfaceProvider { request ->
                     val surface = Surface(textureView.surfaceTexture)
                     request.provideSurface(surface, cameraExecutor) {}
                 }
-
                 preview.setSurfaceProvider(surfaceProvider)
-
                 val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
 
                 cameraProvider.unbindAll()
@@ -85,6 +92,25 @@ class CameraFragment : Fragment() {
         }, ContextCompat.getMainExecutor(requireContext()))
     }
 
+    private fun overlayPlanetaryPositions() {
+        val textureView: TextureView = requireView().findViewById(R.id.textureView)
+        textureView.post {
+            val canvas = textureView.lockCanvas() ?: return@post
+            // val bitmap = Bitmap.createBitmap(textureView.width, textureView.height, Bitmap.Config.ARGB_8888)
+            // val canvas = Canvas(bitmap)
+            canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR) // Set background to transparent
+
+            val paint = Paint().apply {
+                color = Color.GREEN
+                style = Paint.Style.FILL
+            }
+
+            canvas.drawCircle(40f, 70f, 20f, paint)
+            textureView.unlockCanvasAndPost(canvas)
+        }
+    }
+
+    /*
     @Deprecated("Deprecated in Java")
     override fun onRequestPermissionsResult(
         requestCode: Int,
@@ -105,6 +131,7 @@ class CameraFragment : Fragment() {
             super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         }
     }
+     */
 
     override fun onDestroy() {
         super.onDestroy()
