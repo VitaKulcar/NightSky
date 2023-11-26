@@ -48,6 +48,7 @@ class HomeFragment : Fragment() {
                 val pictureData = fetchJsonData()
                 val picture: PictureOfDay = Gson().fromJson(pictureData, PictureOfDay::class.java)
                 picture.title?.let { setTitle(it) }
+
                 picture.url?.let { setImage(it) }
                 picture.explanation?.let { setText(it) }
             } catch (e: Exception) {
@@ -65,11 +66,14 @@ class HomeFragment : Fragment() {
     }
 
     private fun setText(text: String) {
+
         val textView: TextView = requireView().findViewById(R.id.textViewOpisPojava)
         textView.text = text
     }
 
+
     private fun setTitle(text: String) {
+
         val textView: TextView = requireView().findViewById(R.id.textViewNaslov)
         textView.text = text
     }
@@ -77,6 +81,7 @@ class HomeFragment : Fragment() {
     private suspend fun fetchJsonData(): String {
         val apiUrl =
             "https://api.nasa.gov/planetary/apod?api_key=mncTMkevksCAWLjvN5mijXRIyed88XNg1QTFpaZl"
+
         return withContext(Dispatchers.IO) {
             val url = URL(apiUrl)
             val urlConnection = url.openConnection() as HttpURLConnection
