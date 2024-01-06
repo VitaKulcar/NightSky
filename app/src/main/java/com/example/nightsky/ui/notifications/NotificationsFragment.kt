@@ -49,10 +49,6 @@ class NotificationsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         getLocation()
-        showDialog(
-            requireContext(),
-            "Zemljepisna širina:${myLatitude}, Zemljepisna dolžina:${myLongitude}, Nadmorska višina:${myAltitude}"
-        )
         getPlanets()
     }
 
@@ -84,7 +80,7 @@ class NotificationsFragment : Fragment() {
                 val visibleObjects: PlanetJSON = Gson().fromJson(jsonString, PlanetJSON::class.java)
                 showDialog(requireContext(), visibleObjects.toString())
             } catch (e: Exception) {
-                showDialog(requireContext(), e.toString())
+                showDialog(requireContext(), "Ni dostopa do interneta")
             }
         }
     }

@@ -1,13 +1,13 @@
-//@file:Suppress("DEPRECATION")
-
 package com.example.nightsky.ui.camera
 
 import android.Manifest
 import android.content.ContentValues.TAG
+import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.PorterDuff
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -15,18 +15,23 @@ import android.view.Surface
 import android.view.TextureView
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
+import androidx.appcompat.app.AlertDialog
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCapture.OnImageCapturedCallback
+import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.LifecycleOwner
-import com.example.nightsky.R
 import com.example.nightsky.databinding.FragmentCameraBinding
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-
+import androidx.navigation.fragment.findNavController
 
 class CameraFragment : Fragment() {
     private var _binding: FragmentCameraBinding? = null
@@ -41,13 +46,61 @@ class CameraFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentCameraBinding.inflate(inflater, container, false)
-        return binding.root
+        var root = binding.root
+
+        val button: Button = root.findViewById(com.example.nightsky.R.id.buttonPicture)
+        /*
+        button.setOnClickListener {
+            capturePhoto { bitmap ->
+                showDialog(requireContext(), "pripravljena forografija 1")
+                val bundle = Bundle().apply {
+                    putParcelable("capturedBitmap", bitmap)
+                }
+                showDialog(requireContext(), "pripravljena forografija 2")
+                findNavController().navigate(com.example.nightsky.R.id.action_cameraFragment_to_photoFragment, bundle)
+            }
+        }
+         */
+
+        button.setOnClickListener {
+            val bundle = Bundle().apply {
+                putParcelable("capturedBitmap", createWhiteBitmap(100, 100))
+            }
+            showDialog(requireContext(), "pripravljena forografija 1")
+            findNavController().navigate(com.example.nightsky.R.id.action_cameraFragment_to_photoFragment, bundle)
+        }
+
+
+        return root
+    }
+    private fun createWhiteBitmap(width: Int, height: Int): Bitmap {
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        canvas.drawColor(Color.WHITE)
+        return bitmap
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         startCamera()
-        overlayPlanetaryPositions()
+    }
+
+    private fun capturePhoto(callback: (Bitmap) -> Unit) {
+        val imageCapture = ImageCapture.Builder().build()
+        imageCapture.takePicture(cameraExecutor, object : OnImageCapturedCallback() {
+            override fun onCaptureSuccess(image: ImageProxy) {
+                val buffer = image.planes[0].buffer
+                val bytes = ByteArray(buffer.remaining())
+                buffer.get(bytes)
+                val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                image.close()
+                callback(bitmap)
+            }
+            override fun onError(exception: ImageCaptureException) {
+                showDialog(requireContext(), "${exception.message}")
+                Log.e("CaptureError", "Error capturing image: ${exception.message}")
+            }
+        })
     }
 
     private fun startCamera() {
@@ -72,7 +125,8 @@ class CameraFragment : Fragment() {
             try {
                 cameraProvider = cameraProviderFuture.get()
                 val preview = Preview.Builder().build()
-                val textureView: TextureView = requireView().findViewById(R.id.textureView)
+                val textureView: TextureView =
+                    requireView().findViewById(com.example.nightsky.R.id.textureView)
                 val surfaceProvider = Preview.SurfaceProvider { request ->
                     val surface = Surface(textureView.surfaceTexture)
                     request.provideSurface(surface, cameraExecutor) {}
@@ -92,46 +146,13 @@ class CameraFragment : Fragment() {
         }, ContextCompat.getMainExecutor(requireContext()))
     }
 
-    private fun overlayPlanetaryPositions() {
-        val textureView: TextureView = requireView().findViewById(R.id.textureView)
-        textureView.post {
-            val canvas = textureView.lockCanvas() ?: return@post
-            // val bitmap = Bitmap.createBitmap(textureView.width, textureView.height, Bitmap.Config.ARGB_8888)
-            // val canvas = Canvas(bitmap)
-            canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR) // Set background to transparent
-
-            val paint = Paint().apply {
-                color = Color.GREEN
-                style = Paint.Style.FILL
-            }
-
-            canvas.drawCircle(40f, 70f, 20f, paint)
-            textureView.unlockCanvasAndPost(canvas)
-        }
+    private fun showDialog(context: Context, message: String) {
+        AlertDialog.Builder(context)
+            .setTitle("Obvestilo")
+            .setMessage(message)
+            .setPositiveButton("OK") { dialog, _ -> dialog.dismiss() }
+            .show()
     }
-
-    /*
-    @Deprecated("Deprecated in Java")
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        if (requestCode == CameraPermissionRequestCode) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                startCameraInternal()
-            } else {
-                Toast.makeText(
-                    requireContext(),
-                    "Camera permission is required to use the camera.",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-        } else {
-            super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        }
-    }
-     */
 
     override fun onDestroy() {
         super.onDestroy()
