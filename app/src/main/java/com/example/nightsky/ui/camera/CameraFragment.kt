@@ -19,6 +19,8 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import com.example.nightsky.Location
+import com.example.nightsky.ObservationEntry
 import com.example.nightsky.PlanetJSON
 import com.example.nightsky.databinding.FragmentCameraBinding
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -26,6 +28,7 @@ import com.google.android.gms.location.LocationServices
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.BufferedInputStream
@@ -62,8 +65,9 @@ class CameraFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         takePicture()
-        getLocation()
-        getPlanets()
+        //getLocation()
+        //getPlanets()
+        getVisiblePlanets()
         binding.buttonSavePhoto.setOnClickListener {
             val drawable: Drawable? = binding.imageViewCapturePhoto.drawable
             val bitmap: Bitmap? = (drawable as? BitmapDrawable)?.bitmap
@@ -105,12 +109,27 @@ class CameraFragment : Fragment() {
         }
     }
 
+    /*
+    private fun getPlanets() {
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                var jsonString = getData()
+                val visibleObjects: PlanetJSON = Gson().fromJson(jsonString, PlanetJSON::class.java)
+                showDialog(requireContext(), visibleObjects.toString())
+            } catch (e: Exception) {
+                showDialog(requireContext(), "Ni dostopa do interneta")
+                e.printStackTrace()
+            }
+        }
+    }
+
+     */
 
     private suspend fun getData(): String {
         val apiUrl = """
             https://api.astronomyapi.com/api/v2/bodies/positions?
-            longitude=${myLongitude}&latitude=${myLatitude}&
-            from_date=2023-11-25&to_date=2023-11-25&time=17%3A09%3A45
+            longitude=${myLongitude}&latitude=${myLatitude}&elevation=1&
+            from_date=2024-01-10&to_date=2024-01-10&time=18%3A34%3A12
         """.trimIndent()
         return withContext(Dispatchers.IO) {
             val url = URL(apiUrl)
@@ -127,17 +146,36 @@ class CameraFragment : Fragment() {
         }
     }
 
-    private fun getPlanets() {
+    private fun getVisiblePlanets() {
         CoroutineScope(Dispatchers.Main).launch {
             try {
-                var jsonString = getData()
-                val visibleObjects: PlanetJSON = Gson().fromJson(jsonString, PlanetJSON::class.java)
-                showDialog(requireContext(), visibleObjects.toString())
+                val jsonString = getData()
+                val objects: PlanetJSON = Gson().fromJson(jsonString, PlanetJSON::class.java)
+                val visiblePlanets = mutableListOf<ObservationEntry>()
+                objects.data.table.rows.forEach { observationEntry ->
+                    val cells = observationEntry.cells
+                    val planetPosition = cells.first().position
+                    val planetAltitude = planetPosition.horizontal.altitude.degrees.toDouble()
+                    val planetAzimuth = planetPosition.horizontal.azimuth.degrees.toDouble()
+                    val isPlanetVisible = isPlanetVisible(planetAltitude, planetAzimuth)
+                    if (isPlanetVisible) {
+                        visiblePlanets.add(observationEntry)
+                    }
+                }
+
+                showDialog(
+                    requireContext(), "Število vidnih planetov: ${visiblePlanets.count()}" +
+                            "\nŠtevilo vseh planetov: ${objects.data.table.rows.count()}"
+                )
             } catch (e: Exception) {
                 showDialog(requireContext(), "Ni dostopa do interneta")
                 e.printStackTrace()
             }
         }
+    }
+
+    private fun isPlanetVisible(altitude: Double, azimuth: Double): Boolean {
+        return altitude > 0 && azimuth in 180.0..360.0
     }
 
     private fun getLocation() {
