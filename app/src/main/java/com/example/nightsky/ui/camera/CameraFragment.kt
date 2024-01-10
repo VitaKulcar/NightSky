@@ -168,7 +168,7 @@ class CameraFragment : Fragment() {
             SensorManager.SENSOR_DELAY_NORMAL
         )
     }
-    
+
     private fun getVisiblePlanets() {
         CoroutineScope(Dispatchers.Main).launch {
             try {
