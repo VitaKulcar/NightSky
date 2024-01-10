@@ -1,6 +1,7 @@
 package com.example.nightsky.ui.camera
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
@@ -8,6 +9,10 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.Bundle
 import android.provider.MediaStore
 import android.view.LayoutInflater
@@ -19,7 +24,6 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
-import com.example.nightsky.Location
 import com.example.nightsky.ObservationEntry
 import com.example.nightsky.PlanetJSON
 import com.example.nightsky.databinding.FragmentCameraBinding
@@ -28,7 +32,6 @@ import com.google.android.gms.location.LocationServices
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.BufferedInputStream
@@ -39,8 +42,10 @@ class CameraFragment : Fragment() {
     private var _binding: FragmentCameraBinding? = null
     private val binding get() = _binding!!
 
-    private var myLatitude: Double = 46.557339 //Zemljepisna širina
-    private var myLongitude: Double = 15.645910 //Zemljepisna dolžina
+    private var latitude: Double = 0.0 //Zemljepisna širina
+    private var longitude: Double = 0.0 //Zemljepisna dolžina
+    private var azimut: Float = 0.0F
+    private var smerNeba: String = ""
 
     private val takePictureLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -65,8 +70,8 @@ class CameraFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         takePicture()
-        //getLocation()
-        //getPlanets()
+        getLocation()
+        getDirection()
         getVisiblePlanets()
         binding.buttonSavePhoto.setOnClickListener {
             val drawable: Drawable? = binding.imageViewCapturePhoto.drawable
@@ -109,26 +114,10 @@ class CameraFragment : Fragment() {
         }
     }
 
-    /*
-    private fun getPlanets() {
-        CoroutineScope(Dispatchers.Main).launch {
-            try {
-                var jsonString = getData()
-                val visibleObjects: PlanetJSON = Gson().fromJson(jsonString, PlanetJSON::class.java)
-                showDialog(requireContext(), visibleObjects.toString())
-            } catch (e: Exception) {
-                showDialog(requireContext(), "Ni dostopa do interneta")
-                e.printStackTrace()
-            }
-        }
-    }
-
-     */
-
     private suspend fun getData(): String {
         val apiUrl = """
             https://api.astronomyapi.com/api/v2/bodies/positions?
-            longitude=${myLongitude}&latitude=${myLatitude}&elevation=1&
+            longitude=${longitude}&latitude=${latitude}&elevation=1&
             from_date=2024-01-10&to_date=2024-01-10&time=18%3A34%3A12
         """.trimIndent()
         return withContext(Dispatchers.IO) {
@@ -146,6 +135,40 @@ class CameraFragment : Fragment() {
         }
     }
 
+    private fun getDirection() {
+        val sensorManager =
+            requireActivity().getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        val rotationVectorSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
+
+        val sensorEventListener = object : SensorEventListener {
+            override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+
+            override fun onSensorChanged(event: SensorEvent?) {
+                if (event != null && event.sensor.type == Sensor.TYPE_ROTATION_VECTOR) {
+                    val rotationMatrix = FloatArray(9)
+                    SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values)
+
+                    val orientationValues = FloatArray(3)
+                    SensorManager.getOrientation(rotationMatrix, orientationValues)
+
+                    val directions = arrayOf("Sever", "Vzhod", "Jug", "Zahod")
+                    val azimuthInDegrees = orientationValues[0]
+                    val azimuth = (azimuthInDegrees + 360) % 360
+                    azimut = azimuth
+                    val index = (azimuth / 90).toInt() % 4
+                    val direction = directions[index]
+                    smerNeba = direction
+                }
+            }
+        }
+
+        sensorManager.registerListener(
+            sensorEventListener,
+            rotationVectorSensor,
+            SensorManager.SENSOR_DELAY_NORMAL
+        )
+    }
+    
     private fun getVisiblePlanets() {
         CoroutineScope(Dispatchers.Main).launch {
             try {
@@ -157,25 +180,23 @@ class CameraFragment : Fragment() {
                     val planetPosition = cells.first().position
                     val planetAltitude = planetPosition.horizontal.altitude.degrees.toDouble()
                     val planetAzimuth = planetPosition.horizontal.azimuth.degrees.toDouble()
-                    val isPlanetVisible = isPlanetVisible(planetAltitude, planetAzimuth)
-                    if (isPlanetVisible) {
+                    if (planetAltitude > 0 && (planetAzimuth in azimut - 90.0..azimut + 90.0)) {
                         visiblePlanets.add(observationEntry)
                     }
                 }
+                val visiblePlanetNames = visiblePlanets.map { it.entry.name }
 
-                showDialog(
-                    requireContext(), "Število vidnih planetov: ${visiblePlanets.count()}" +
-                            "\nŠtevilo vseh planetov: ${objects.data.table.rows.count()}"
-                )
+                binding.textViewFact.text =
+                    "Zemljepisna širina: ${latitude}\nZemljepisna dolžina: ${longitude}\n" +
+                            "Azimut: ${azimut}\nSmer neba: ${smerNeba}\n" +
+                            "Število vseh planetov: ${objects.data.table.rows.size}\n" +
+                            "Število vidnih planetov: ${visiblePlanets.size}\n" +
+                            "Imena vidnih planetov: ${visiblePlanetNames.joinToString(", ")}"
             } catch (e: Exception) {
                 showDialog(requireContext(), "Ni dostopa do interneta")
                 e.printStackTrace()
             }
         }
-    }
-
-    private fun isPlanetVisible(altitude: Double, azimuth: Double): Boolean {
-        return altitude > 0 && azimuth in 180.0..360.0
     }
 
     private fun getLocation() {
@@ -190,8 +211,8 @@ class CameraFragment : Fragment() {
                 fusedLocationClient.lastLocation
                     .addOnSuccessListener { location ->
                         if (location != null) {
-                            myLatitude = location.latitude
-                            myLongitude = location.longitude
+                            latitude = location.latitude
+                            longitude = location.longitude
                         } else showDialog(requireContext(), "Ni dostopa do lokacije")
                     }
             } catch (e: Exception) {
