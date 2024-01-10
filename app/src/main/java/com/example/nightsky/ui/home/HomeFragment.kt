@@ -5,12 +5,9 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
-import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import com.example.nightsky.PictureOfDay
-import com.example.nightsky.R
 import com.example.nightsky.databinding.FragmentHomeBinding
 import com.google.gson.Gson
 import com.squareup.picasso.Picasso
@@ -33,8 +30,7 @@ class HomeFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
-        val root: View = binding.root
-        return root
+        return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -45,40 +41,21 @@ class HomeFragment : Fragment() {
     private fun loadData() {
         CoroutineScope(Dispatchers.Main).launch {
             try {
-                val pictureData = fetchJsonData()
+                val pictureData = getJsonData()
                 val picture: PictureOfDay = Gson().fromJson(pictureData, PictureOfDay::class.java)
-                picture.title?.let { setTitle(it) }
 
-                picture.url?.let { setImage(it) }
-                picture.explanation?.let { setText(it) }
+                Picasso.get().load(picture.url).into(binding.imageViewPojav)
+                binding.textViewNaslov.text = picture.title
+                binding.textViewOpisPojava.text = picture.explanation
+
             } catch (e: Exception) {
-                context?.let { showErrorDialog(it, "Ni dostopa do interneta") }
+                showDialog(requireContext(), "Ni dostopa do interneta")
                 e.printStackTrace()
             }
         }
     }
 
-    private fun setImage(imageUrl: String) {
-        val imageView: ImageView = requireView().findViewById(R.id.imageViewPojav)
-        Picasso.get()
-            .load(imageUrl)
-            .into(imageView)
-    }
-
-    private fun setText(text: String) {
-
-        val textView: TextView = requireView().findViewById(R.id.textViewOpisPojava)
-        textView.text = text
-    }
-
-
-    private fun setTitle(text: String) {
-
-        val textView: TextView = requireView().findViewById(R.id.textViewNaslov)
-        textView.text = text
-    }
-
-    private suspend fun fetchJsonData(): String {
+    private suspend fun getJsonData(): String {
         val apiUrl =
             "https://api.nasa.gov/planetary/apod?api_key=mncTMkevksCAWLjvN5mijXRIyed88XNg1QTFpaZl"
 
@@ -92,9 +69,9 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun showErrorDialog(context: Context, message: String) {
+    private fun showDialog(context: Context, message: String) {
         AlertDialog.Builder(context)
-            .setTitle("Napaka")
+            .setTitle("Obvestilo")
             .setMessage(message)
             .setPositiveButton("OK") { dialog, _ -> dialog.dismiss() }
             .show()
