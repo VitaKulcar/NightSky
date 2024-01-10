@@ -10,19 +10,19 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <TextureView
-            android:id="@+id/textureView"
+        <ImageView
+            android:id="@+id/imageViewCapturePhoto"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
 
         <Button
-            android:id="@+id/buttonPicture"
+            android:id="@+id/buttonSavePhoto"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentBottom="true"
             android:layout_centerHorizontal="true"
             android:layout_marginBottom="18dp"
-            android:icon="@android:drawable/ic_menu_camera" />
+            android:text="shrani"/>
     </RelativeLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

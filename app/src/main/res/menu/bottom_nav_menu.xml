@@ -13,5 +13,4 @@
         android:id="@+id/navigation_camera"
         android:icon="@android:drawable/ic_menu_camera"
         android:title="@string/tittle_camera" />
-
 </menu>

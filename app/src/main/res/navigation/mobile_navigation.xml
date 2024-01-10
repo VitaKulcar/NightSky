@@ -15,24 +15,11 @@
         android:id="@+id/navigation_camera"
         android:name="com.example.nightsky.ui.camera.CameraFragment"
         android:label="@string/tittle_camera"
-        tools:layout="@layout/fragment_camera">
-        <action
-            android:id="@+id/action_cameraFragment_to_photoFragment"
-            app:destination="@id/photoFragment">
-            <argument
-                android:name="capturedBitmap"
-                app:argType="android.graphics.Bitmap" />
-        </action>
-    </fragment>
+        tools:layout="@layout/fragment_camera" />
 
     <fragment
         android:id="@+id/navigation_notifications"
         android:name="com.example.nightsky.ui.notifications.NotificationsFragment"
         android:label="@string/title_notifications"
         tools:layout="@layout/fragment_notifications" />
-
-    <fragment
-        android:id="@+id/photoFragment"
-        android:name="com.example.nightsky.ui.photo.PhotoFragment"
-        android:label="Photo" />
 </navigation>
