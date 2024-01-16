@@ -17,12 +17,11 @@
         app:layout_constraintTop_toTopOf="parent"
         tools:ignore="UseCompoundDrawables">
 
-        <TextView
-            android:id="@+id/textViewFact"
-            android:layout_width="wrap_content"
+        <TableLayout
+            android:id="@+id/tableLayout"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="8dp"
-            android:textSize="14sp" />
+            android:padding="8dp" />
 
         <ImageView
             android:id="@+id/imageViewCapturePhoto"

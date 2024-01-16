@@ -15,9 +15,12 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Bundle
 import android.provider.MediaStore
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TableRow
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -186,17 +189,55 @@ class CameraFragment : Fragment() {
                 }
                 val visiblePlanetNames = visiblePlanets.map { it.entry.name }
 
-                binding.textViewFact.text =
-                    "Zemljepisna širina: ${latitude}\nZemljepisna dolžina: ${longitude}\n" +
-                            "Azimut: ${azimut}\nSmer neba: ${smerNeba}\n" +
-                            "Število vseh planetov: ${objects.data.table.rows.size}\n" +
-                            "Število vidnih planetov: ${visiblePlanets.size}\n" +
-                            "Imena vidnih planetov: ${visiblePlanetNames.joinToString(", ")}"
+                val tableRow1 = createTableRow("Zemljepisna širina", latitude.toString())
+                val tableRow2 = createTableRow("Zemljepisna dolžina", longitude.toString())
+                val tableRow3 = createTableRow("Azimut", azimut.toString())
+                val tableRow4 = createTableRow("Smer neba", smerNeba)
+                val tableRow5 =
+                    createTableRow("Število vseh planetov", objects.data.table.rows.size.toString())
+                val tableRow6 =
+                    createTableRow("Število vidnih planetov", visiblePlanets.size.toString())
+                val tableRow7 =
+                    createTableRow("Imena vidnih planetov", visiblePlanetNames.joinToString(", "))
+
+                binding.tableLayout.addView(tableRow1)
+                binding.tableLayout.addView(tableRow2)
+                binding.tableLayout.addView(tableRow3)
+                binding.tableLayout.addView(tableRow4)
+                binding.tableLayout.addView(tableRow5)
+                binding.tableLayout.addView(tableRow6)
+                binding.tableLayout.addView(tableRow7)
+
             } catch (e: Exception) {
                 showDialog(requireContext(), "Ni dostopa do interneta")
                 e.printStackTrace()
             }
         }
+    }
+
+    private fun createTableRow(label: String, value: String): TableRow {
+        val tableRow = TableRow(requireContext())
+        val labelTextView = TextView(requireContext())
+        val valueTextView = TextView(requireContext())
+
+        labelTextView.text = label
+        labelTextView.setTextSize(16f)
+        labelTextView.gravity = Gravity.CENTER
+
+        val labelLayoutParams = TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 0.5f)
+        labelTextView.layoutParams = labelLayoutParams
+
+        valueTextView.text = value
+        valueTextView.setTextSize(16f)
+        valueTextView.gravity = Gravity.CENTER
+
+        val valueLayoutParams = TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 0.5f)
+        valueTextView.layoutParams = valueLayoutParams
+
+        tableRow.addView(labelTextView)
+        tableRow.addView(valueTextView)
+
+        return tableRow
     }
 
     private fun getLocation() {
