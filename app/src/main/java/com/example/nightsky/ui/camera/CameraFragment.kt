@@ -47,8 +47,8 @@ class CameraFragment : Fragment() {
 
     private var latitude: Double = 0.0 //Zemljepisna širina
     private var longitude: Double = 0.0 //Zemljepisna dolžina
-    private var azimut: Float = 0.0F
-    private var smerNeba: String = ""
+    private var smer: Float = 0.0F
+    private var smerNeba = ""
 
     private val takePictureLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -154,15 +154,14 @@ class CameraFragment : Fragment() {
                     val orientationValues = FloatArray(3)
                     SensorManager.getOrientation(rotationMatrix, orientationValues)
 
+                    val degrees = Math.toDegrees(orientationValues[0].toDouble()).toFloat()
+                    smer = (degrees + 360) % 360
                     val directions = arrayOf("Sever", "Vzhod", "Jug", "Zahod")
-                    val azimuthInDegrees = orientationValues[0]
-                    val azimuth = (azimuthInDegrees + 360) % 360
-                    azimut = azimuth
-                    val index = (azimuth / 90).toInt() % 4
-                    val direction = directions[index]
-                    smerNeba = direction
+                    val index = (smer / 90).toInt() % 4
+                    smerNeba = directions[index]
                 }
             }
+
         }
 
         sensorManager.registerListener(
@@ -178,27 +177,38 @@ class CameraFragment : Fragment() {
                 val jsonString = getData()
                 val objects: PlanetJSON = Gson().fromJson(jsonString, PlanetJSON::class.java)
                 val visiblePlanets = mutableListOf<ObservationEntry>()
+                val visiblePlanetsInDirection = mutableListOf<ObservationEntry>()
                 objects.data.table.rows.forEach { observationEntry ->
                     val cells = observationEntry.cells
                     val planetPosition = cells.first().position
                     val planetAltitude = planetPosition.horizontal.altitude.degrees.toDouble()
                     val planetAzimuth = planetPosition.horizontal.azimuth.degrees.toDouble()
-                    if (planetAltitude > 0 && (planetAzimuth in azimut - 90.0..azimut + 90.0)) {
+                    if (planetAltitude > 0) {
                         visiblePlanets.add(observationEntry)
+                        if (planetAzimuth in smer - 45.0..smer + 45.0) {
+                            visiblePlanetsInDirection.add(observationEntry)
+                        }
                     }
                 }
-                val visiblePlanetNames = visiblePlanets.map { it.entry.name }
+                val visiblePlanetsNames = visiblePlanets.map { it.entry.name }
+                val visiblePlanetsInDirectionNames = visiblePlanetsInDirection.map { it.entry.name }
 
                 val tableRow1 = createTableRow("Zemljepisna širina", latitude.toString())
                 val tableRow2 = createTableRow("Zemljepisna dolžina", longitude.toString())
-                val tableRow3 = createTableRow("Azimut", azimut.toString())
-                val tableRow4 = createTableRow("Smer neba", smerNeba)
+                val tableRow3 =
+                    createTableRow("Stopinje smeri neba", smer.toString())
+                val tableRow4 =
+                    createTableRow("Smer neba", smerNeba)
                 val tableRow5 =
-                    createTableRow("Število vseh planetov", objects.data.table.rows.size.toString())
+                    createTableRow(
+                        "Imena vseh vidnih planetov na nebu",
+                        visiblePlanetsNames.joinToString(", ")
+                    )
                 val tableRow6 =
-                    createTableRow("Število vidnih planetov", visiblePlanets.size.toString())
-                val tableRow7 =
-                    createTableRow("Imena vidnih planetov", visiblePlanetNames.joinToString(", "))
+                    createTableRow(
+                        "Imena vidnih planetov v naši smeri neba",
+                        visiblePlanetsInDirectionNames.joinToString(", ")
+                    )
 
                 binding.tableLayout.addView(tableRow1)
                 binding.tableLayout.addView(tableRow2)
@@ -206,8 +216,6 @@ class CameraFragment : Fragment() {
                 binding.tableLayout.addView(tableRow4)
                 binding.tableLayout.addView(tableRow5)
                 binding.tableLayout.addView(tableRow6)
-                binding.tableLayout.addView(tableRow7)
-
             } catch (e: Exception) {
                 showDialog(requireContext(), "Ni dostopa do interneta")
                 e.printStackTrace()
@@ -221,14 +229,14 @@ class CameraFragment : Fragment() {
         val valueTextView = TextView(requireContext())
 
         labelTextView.text = label
-        labelTextView.setTextSize(16f)
+        labelTextView.setTextSize(12f)
         labelTextView.gravity = Gravity.CENTER
 
         val labelLayoutParams = TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 0.5f)
         labelTextView.layoutParams = labelLayoutParams
 
         valueTextView.text = value
-        valueTextView.setTextSize(16f)
+        valueTextView.setTextSize(12f)
         valueTextView.gravity = Gravity.CENTER
 
         val valueLayoutParams = TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 0.5f)
