@@ -40,6 +40,8 @@ import kotlinx.coroutines.withContext
 import java.io.BufferedInputStream
 import java.net.HttpURLConnection
 import java.net.URL
+import java.text.SimpleDateFormat
+import java.util.Date
 
 class CameraFragment : Fragment() {
     private var _binding: FragmentCameraBinding? = null
@@ -118,10 +120,13 @@ class CameraFragment : Fragment() {
     }
 
     private suspend fun getData(): String {
+        val date = SimpleDateFormat("yyyy-MM-dd").format(Date())
+        val time = SimpleDateFormat("HH:mm:ss").format(Date())
+
         val apiUrl = """
             https://api.astronomyapi.com/api/v2/bodies/positions?
             longitude=${longitude}&latitude=${latitude}&elevation=1&
-            from_date=2024-01-10&to_date=2024-01-10&time=18%3A34%3A12
+            from_date=${date}&to_date=${date}&time=${time}
         """.trimIndent()
         return withContext(Dispatchers.IO) {
             val url = URL(apiUrl)
@@ -161,7 +166,6 @@ class CameraFragment : Fragment() {
                     smerNeba = directions[index]
                 }
             }
-
         }
 
         sensorManager.registerListener(
