@@ -161,8 +161,18 @@ class CameraFragment : Fragment() {
 
                     val degrees = Math.toDegrees(orientationValues[0].toDouble()).toFloat()
                     smer = (degrees + 360) % 360
-                    val directions = arrayOf("Sever", "Vzhod", "Jug", "Zahod")
-                    val index = (smer / 90).toInt() % 4
+                    val directions = arrayOf("Sever", "Severo vzhod", "Vzhod", "Jugo vzhod", "Jug", "Jugo zahod", "Zahod", "Severo zahod")
+                    val index = when {
+                        (smer in 337.5..360.0) || (smer >= 0 && smer < 22.5) -> 0  // Sever
+                        (smer >= 22.5 && smer < 67.5) -> 1
+                        (smer >= 67.5 && smer < 112.5) -> 2  // Vzhod
+                        (smer >= 112.5 && smer < 157.5) -> 3
+                        (smer >= 157.5 && smer < 202.5) -> 4  // Jug
+                        (smer >= 202.5 && smer < 247.5) -> 5
+                        (smer >= 247.5 && smer < 292.5) -> 6  // Zahod
+                        (smer >= 292.5 && smer < 337.5) -> 7
+                        else -> -1
+                    }
                     smerNeba = directions[index]
                 }
             }
